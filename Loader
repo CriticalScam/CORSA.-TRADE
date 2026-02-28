@@ -7,11 +7,6 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
--- Verificar se já existe
-if game.CoreGui:FindFirstChild("vexx0G") then
-    game.CoreGui:FindFirstChild("vexx0G"):Destroy()
-end
-
 local FreezeTradeEnabled = false
 local AutoAcceptEnabled = false
 local AddBrainrotActive = false
