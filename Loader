@@ -1,0 +1,344 @@
+-- CORSA. Scripts - CORSA. TRADE v1.0
+-- Delta Executor Compatible
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Verificar se já existe
+if game.CoreGui:FindFirstChild("vexx0G") then
+    game.CoreGui:FindFirstChild("vexx0G"):Destroy()
+end
+
+local FreezeTradeEnabled = false
+local AutoAcceptEnabled = false
+local AddBrainrotActive = false
+
+local function CreateGUI()
+    local ScreenGui = Instance.new("ScreenGui")
+    local MainFrame = Instance.new("Frame")
+    local Title = Instance.new("TextLabel")
+    local Subtitle = Instance.new("TextLabel")
+    
+    ScreenGui.Name = "*🪐CORSA.🪐*"
+    ScreenGui.Parent = game.CoreGui
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    -- Frame Principal
+    MainFrame.Name = "MainFrame"
+    MainFrame.Parent = ScreenGui
+    MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Position = UDim2.new(0.4, 0, 0.3, 0)
+    MainFrame.Size = UDim2.new(0, 350, 0, 300)
+    MainFrame.Active = true
+    MainFrame.Draggable = true
+    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 12)
+    Corner.Parent = MainFrame
+    
+    -- Título
+    Title.Name = "Title"
+    Title.Parent = MainFrame
+    Title.BackgroundColor3 = Color3.fromRGB(40, 120, 255)
+    Title.BorderSizePixel = 0
+    Title.Size = UDim2.new(1, 0, 0, 50)
+    Title.Font = Enum.Font.GothamBold
+    Title.Text = "🔮CORSA."
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.TextSize = 20
+    
+    local TitleCorner = Instance.new("UICorner")
+    TitleCorner.CornerRadius = UDim.new(0, 12)
+    TitleCorner.Parent = Title
+    
+    -- Subtítulo
+    Subtitle.Name = "Subtitle"
+    Subtitle.Parent = MainFrame
+    Subtitle.BackgroundTransparency = 1
+    Subtitle.Position = UDim2.new(0, 0, 0, 52)
+    Subtitle.Size = UDim2.new(1, 0, 0, 25)
+    Subtitle.Font = Enum.Font.Gotham
+    Subtitle.Text = "CORSA. TRADE v1.0"
+    Subtitle.TextColor3 = Color3.fromRGB(180, 180, 180)
+    Subtitle.TextSize = 13
+    
+    -- Função para criar botões
+    local function CreateButton(name, text, position)
+        local button = Instance.new("TextButton")
+        button.Name = name
+        button.Parent = MainFrame
+        button.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+        button.BorderSizePixel = 0
+        button.Position = position
+        button.Size = UDim2.new(0, 300, 0, 50)
+        button.Font = Enum.Font.GothamBold
+        button.Text = text
+        button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        button.TextSize = 15
+        
+        local buttonCorner = Instance.new("UICorner")
+        buttonCorner.CornerRadius = UDim.new(0, 8)
+        buttonCorner.Parent = button
+        
+        button.MouseEnter:Connect(function()
+            button.BackgroundColor3 = Color3.fromRGB(55, 55, 75)
+        end)
+        
+        button.MouseLeave:Connect(function()
+            if button.BackgroundColor3 ~= Color3.fromRGB(50, 200, 50) then
+                button.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+            end
+        end)
+        
+        return button
+    end
+    
+    -- Criar botões
+    local FreezeTradeButton = CreateButton("FreezeTrade", "❄️ Freeze Trade: OFF", UDim2.new(0, 25, 0, 90))
+    local AddBrainrotButton = CreateButton("AddBrainrot", "🧠 ADD Brainrot: OFF", UDim2.new(0, 25, 0, 155))
+    local AutoAcceptButton = CreateButton("AutoAccept", "✅ Auto Accept: OFF", UDim2.new(0, 25, 0, 220))
+    
+    -- Botão Fechar
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Name = "CloseButton"
+    CloseButton.Parent = MainFrame
+    CloseButton.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+    CloseButton.BorderSizePixel = 0
+    CloseButton.Position = UDim2.new(0.87, 0, 0, 10)
+    CloseButton.Size = UDim2.new(0, 35, 0, 35)
+    CloseButton.Font = Enum.Font.GothamBold
+    CloseButton.Text = "X"
+    CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseButton.TextSize = 18
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 8)
+    closeCorner.Parent = CloseButton
+    
+    CloseButton.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+    end)
+    
+    return {
+        ScreenGui = ScreenGui,
+        MainFrame = MainFrame,
+        FreezeTradeButton = FreezeTradeButton,
+        AddBrainrotButton = AddBrainrotButton,
+        AutoAcceptButton = AutoAcceptButton,
+        CloseButton = CloseButton
+    }
+end
+
+local GUI = CreateGUI()
+
+-- Função para encontrar elementos da trade
+local function GetTradeElements()
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if not playerGui then return nil end
+    
+    for _, gui in pairs(playerGui:GetDescendants()) do
+        if gui.Name:lower():find("trade") or gui.Name:lower():find("troca") then
+            return gui
+        end
+    end
+    return nil
+end
+
+-- Função Freeze Trade
+-- OBJETIVO: Congelar visualmente os itens do jogador, impedir que ele remova/adicione itens
+local FreezeConnection
+local frozenItems = {}
+
+local function ToggleFreezeTrade()
+    FreezeTradeEnabled = not FreezeTradeEnabled
+    
+    if FreezeTradeEnabled then
+        GUI.FreezeTradeButton.Text = "❄️ Freeze Trade: ON"
+        GUI.FreezeTradeButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        
+        -- Guardar estado visual dos itens do outro jogador
+        FreezeConnection = RunService.Heartbeat:Connect(function()
+            local tradeWindow = GetTradeElements()
+            if tradeWindow then
+                -- Procurar slots do outro jogador
+                for _, item in pairs(tradeWindow:GetDescendants()) do
+                    -- Identificar itens do outro jogador (Player2, OtherPlayer, etc)
+                    if item:IsA("Frame") or item:IsA("ImageLabel") then
+                        if item.Name:lower():find("player2") or 
+                           item.Name:lower():find("other") or 
+                           item.Name:lower():find("their") or
+                           item.Parent.Name:lower():find("player2") then
+                            
+                            -- Salvar estado visual
+                            if not frozenItems[item] then
+                                frozenItems[item] = {
+                                    Image = item:IsA("ImageLabel") and item.Image or "",
+                                    Visible = item.Visible,
+                                    Parent = item.Parent
+                                }
+                            end
+                            
+                            -- Bloquear interação
+                            for _, button in pairs(item:GetDescendants()) do
+                                if button:IsA("TextButton") or button:IsA("ImageButton") then
+                                    button.Active = false
+                                    button.AutoButtonColor = false
+                                end
+                            end
+                        end
+                    end
+                end
+                
+                -- Manter itens congelados visualmente
+                for item, data in pairs(frozenItems) do
+                    if item and item.Parent then
+                        item.Visible = data.Visible
+                        if item:IsA("ImageLabel") then
+                            item.Image = data.Image
+                        end
+                    end
+                end
+            end
+        end)
+        
+    else
+        GUI.FreezeTradeButton.Text = "❄️ Freeze Trade: OFF"
+        GUI.FreezeTradeButton.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+        
+        if FreezeConnection then
+            FreezeConnection:Disconnect()
+        end
+        frozenItems = {}
+    end
+end
+
+-- Função ADD Brainrot
+-- OBJETIVO: Adicionar automaticamente o MELHOR brainrot do outro jogador (maior $ por segundo)
+local AddBrainrotConnection
+
+local function ToggleAddBrainrot()
+    AddBrainrotActive = not AddBrainrotActive
+    
+    if AddBrainrotActive then
+        GUI.AddBrainrotButton.Text = "🧠 ADD Brainrot: ON"
+        GUI.AddBrainrotButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        
+        AddBrainrotConnection = RunService.Heartbeat:Connect(function()
+            local tradeWindow = GetTradeElements()
+            if tradeWindow then
+                local bestBrainrot = nil
+                local highestValue = 0
+                
+                -- Procurar todos os brainrots disponíveis do outro jogador
+                for _, item in pairs(tradeWindow:GetDescendants()) do
+                    if item:IsA("Frame") or item:IsA("ImageLabel") then
+                        -- Verificar se pertence ao inventário do outro jogador
+                        local itemName = item.Name:lower()
+                        
+                        -- Procurar valor de $ por segundo
+                        for _, textLabel in pairs(item:GetDescendants()) do
+                            if textLabel:IsA("TextLabel") then
+                                local text = textLabel.Text:lower()
+                                -- Procurar padrões como "$100/s", "100$/s", etc
+                                local value = tonumber(text:match("%d+"))
+                                
+                                if value and value > highestValue then
+                                    highestValue = value
+                                    bestBrainrot = item
+                                end
+                            end
+                        end
+                    end
+                end
+                
+                -- Adicionar o melhor brainrot
+                if bestBrainrot then
+                    -- Procurar botão de adicionar
+                    for _, button in pairs(bestBrainrot:GetDescendants()) do
+                        if button:IsA("TextButton") or button:IsA("ImageButton") then
+                            if button.Name:lower():find("add") or button.Name:lower():find("select") then
+                                fireclickdetector(button.ClickDetector)
+                                firesignal(button.MouseButton1Click)
+                                
+                                -- Bloquear para o outro jogador não remover
+                                button.Active = false
+                            end
+                        end
+                    end
+                    
+                    -- Bloquear todos os controles do outro jogador
+                    for _, control in pairs(tradeWindow:GetDescendants()) do
+                        if control:IsA("TextButton") or control:IsA("ImageButton") then
+                            if control.Parent.Name:lower():find("player2") or 
+                               control.Parent.Name:lower():find("other") then
+                                control.Active = false
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+        
+    else
+        GUI.AddBrainrotButton.Text = "🧠 ADD Brainrot: OFF"
+        GUI.AddBrainrotButton.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+        
+        if AddBrainrotConnection then
+            AddBrainrotConnection:Disconnect()
+        end
+    end
+end
+
+-- Função Auto Accept
+-- OBJETIVO: Fazer o OUTRO JOGADOR aceitar automaticamente a trade
+local AutoAcceptConnection
+
+local function ToggleAutoAccept()
+    AutoAcceptEnabled = not AutoAcceptEnabled
+    
+    if AutoAcceptEnabled then
+        GUI.AutoAcceptButton.Text = "✅ Auto Accept: ON"
+        GUI.AutoAcceptButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        
+        AutoAcceptConnection = RunService.Heartbeat:Connect(function()
+            local tradeWindow = GetTradeElements()
+            if tradeWindow then
+                -- Procurar o botão de aceitar do OUTRO jogador
+                for _, button in pairs(tradeWindow:GetDescendants()) do
+                    if button:IsA("TextButton") then
+                        local buttonText = button.Text:lower()
+                        local buttonName = button.Name:lower()
+                        
+                        -- Verificar se é o botão de aceitar do outro jogador
+                        if (buttonText:find("accept") or buttonText:find("aceitar") or buttonText:find("confirm")) and
+                           (button.Parent.Name:lower():find("player2") or 
+                            button.Parent.Name:lower():find("other") or
+                            buttonName:find("player2") or
+                            buttonName:find("other")) then
+                            
+                            -- Clicar automaticamente no botão de aceitar do outro jogador
+                            fireclickdetector(button.ClickDetector)
+                            firesignal(button.MouseButton1Click)
+                            firesignal(button.Activated)
+                        end
+                    end
+                end
+            end
+        end)
+        
+    else
+        GUI.AutoAcceptButton.Text = "✅ Auto Accept: OFF"
+        GUI.AutoAcceptButton.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+        
+        if AutoAcceptConnection then
+            AutoAcceptConnection:Disconnect()
+        end
+    end
+end
+
+-- Conectar eventos dos botões
+GUI.FreezeTradeButton.MouseButton1Click:Connect(ToggleFreezeTrade)
+GUI.AddBrainrotButton.MouseButton1Click:Connect(ToggleAddBrainrot)
+GUI.AutoAcceptButton.MouseButton1Click:Connect(ToggleAutoAccept
