@@ -1,5 +1,7 @@
 -- CORSA. Scripts - CORSA. TRADE v1.0
 -- Delta Executor Compatible
+-- Created and Owned by @vexx0G on Roblox
+-- Discord: cor.sa
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
